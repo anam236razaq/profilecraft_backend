@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# Serve uploaded files
+RewriteRule ^uploads/(.*)$ uploads/$1 [L]
+
+# Route all other requests to index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]
