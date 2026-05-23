@@ -210,24 +210,16 @@ $router->post('/admin/templates', function($data) {
     // Handle thumbnail upload
     $thumbnail_url = null;
 
-    if (isset($data['_FILES']['thumbnail_url']) && $data['_FILES']['thumbnail_url']['error'] === UPLOAD_ERR_OK) {
+    if (isset($data['_FILES']['thumbnail_url']) && isset($data['_FILES']['thumbnail_url']['error'])) {
         $file = $data['_FILES']['thumbnail_url'];
-        $uploadDir = __DIR__ . '/../../public/uploads/thumbnails/';
 
-        // Create directory if not exists
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
+        if ($file['error'] === UPLOAD_ERR_OK || $file['error'] === 0) {
+            $cloudinary = new CloudinaryService();
+            $thumbnail_url = $cloudinary->uploadThumbnail($file['tmp_name']);
 
-        // Generate unique filename
-        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $filename = uniqid('thumb_') . '.' . $ext;
-        $destination = $uploadDir . $filename;
-
-        if (move_uploaded_file($file['tmp_name'], $destination)) {
-            $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
-            $host = $_SERVER['HTTP_HOST'] ?? 'localhost:8080';
-            $thumbnail_url = $protocol . '://' . $host . '/uploads/thumbnails/' . $filename;
+            if (!$thumbnail_url) {
+                Response::error('Failed to upload thumbnail', 500);
+            }
         }
     }
 
@@ -248,9 +240,6 @@ $router->put('/admin/templates/{id}', function($data) {
         Response::error('Template ID is required', 400);
     }
 
-    error_log("PUT /admin/templates/{id} called with data keys: " . implode(', ', array_keys($data)));
-    error_log("PUT /admin/templates/{id} _FILES: " . print_r($data['_FILES'] ?? [], true));
-
     $templateData = [];
     if (isset($data['name'])) $templateData['name'] = $data['name'];
     if (isset($data['description'])) $templateData['description'] = $data['description'];
@@ -261,47 +250,23 @@ $router->put('/admin/templates/{id}', function($data) {
     if (isset($data['is_active'])) $templateData['is_active'] = $data['is_active'] ? 1 : 0;
 
     // Handle thumbnail upload
-    if (isset($data['_FILES']['thumbnail_url']) && $data['_FILES']['thumbnail_url']['error'] === UPLOAD_ERR_OK) {
+    if (isset($data['_FILES']['thumbnail_url']) && isset($data['_FILES']['thumbnail_url']['error'])) {
         $file = $data['_FILES']['thumbnail_url'];
-        error_log("Thumbnail file found: " . print_r($file, true));
 
-        $uploadDir = __DIR__ . '/../../public/uploads/thumbnails/';
+        if ($file['error'] === UPLOAD_ERR_OK || $file['error'] === 0) {
+            $cloudinary = new CloudinaryService();
+            $thumbnail_url = $cloudinary->uploadThumbnail($file['tmp_name']);
 
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
-
-        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $filename = uniqid('thumb_') . '.' . $ext;
-        $destination = $uploadDir . $filename;
-
-        error_log("Upload destination: " . $destination);
-        error_log("Temp file: " . $file['tmp_name']);
-        error_log("File exists at temp: " . (file_exists($file['tmp_name']) ? 'yes' : 'no'));
-
-        // Use copy/rename instead of move_uploaded_file for manually parsed PUT requests
-        // move_uploaded_file only works for normal HTTP POST uploads
-        if (file_exists($file['tmp_name'])) {
-            if (copy($file['tmp_name'], $destination)) {
-                unlink($file['tmp_name']); // Clean up temp file
-                $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
-                $host = $_SERVER['HTTP_HOST'] ?? 'localhost:8080';
-                $templateData['thumbnail_url'] = $protocol . '://' . $host . '/uploads/thumbnails/' . $filename;
-                error_log("Thumbnail uploaded successfully: " . $templateData['thumbnail_url']);
+            if ($thumbnail_url) {
+                $templateData['thumbnail_url'] = $thumbnail_url;
             } else {
-                error_log("Thumbnail copy FAILED");
+                Response::error('Failed to upload thumbnail', 500);
             }
-        } else {
-            error_log("Thumbnail temp file does not exist");
         }
-    } else {
-        error_log("Thumbnail upload condition not met or error: " . ($data['_FILES']['thumbnail_url']['error'] ?? 'not set'));
     }
 
     if (!empty($templateData)) {
         $templateModel->update((int)$id, $templateData);
-    } else {
-        error_log("No template data to update");
     }
 
     Response::success(['id' => $id], 'Template updated successfully');

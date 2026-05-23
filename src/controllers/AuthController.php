@@ -129,34 +129,35 @@ class AuthController {
         }
 
         // Handle avatar upload
-        if (isset($data['_FILES']['avatar']) && $data['_FILES']['avatar']['error'] === UPLOAD_ERR_OK) {
-            $file = $data['_FILES']['avatar'];
-            $uploadDir = __DIR__ . '/../../public/uploads/profile_images/';
+        if (isset($data['_FILES']['avatar']) && isset($data['_FILES']['avatar']['error'])) {
+            $fileError = $data['_FILES']['avatar']['error'];
+            if ($fileError === UPLOAD_ERR_OK || $fileError === 0) {
+                $file = $data['_FILES']['avatar'];
 
-            // Create directory if not exists
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
-            }
+                // Check if temp file exists
+                if (!file_exists($file['tmp_name'])) {
+                    Response::error('Invalid upload file', 400);
+                }
 
-            // Validate file type
-            $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $mimeType = finfo_file($finfo, $file['tmp_name']);
-            finfo_close($finfo);
+                // Validate file type
+                $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $mimeType = finfo_file($finfo, $file['tmp_name']);
+                finfo_close($finfo);
 
-            if (!in_array($mimeType, $allowedTypes)) {
-                Response::error('Invalid image file. Allowed types: JPEG, PNG, GIF, WebP', 400);
-            }
+                if (!in_array($mimeType, $allowedTypes)) {
+                    Response::error('Invalid image file. Allowed types: JPEG, PNG, GIF, WebP', 400);
+                }
 
-            // Generate unique filename
-            $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-            $filename = uniqid('avatar_') . '.' . $ext;
-            $destination = $uploadDir . $filename;
+                // Upload to Cloudinary
+                $cloudinary = new CloudinaryService();
+                $avatarUrl = $cloudinary->uploadProfileImage($file['tmp_name']);
 
-            if (move_uploaded_file($file['tmp_name'], $destination)) {
-                $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
-                $host = $_SERVER['HTTP_HOST'] ?? 'localhost:8080';
-                $updateData['avatar_url'] = $protocol . '://' . $host . '/uploads/profile_images/' . $filename;
+                if ($avatarUrl) {
+                    $updateData['avatar_url'] = $avatarUrl;
+                } else {
+                    Response::error('Failed to upload avatar', 500);
+                }
             }
         }
 

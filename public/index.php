@@ -54,6 +54,7 @@ require_once BASE_PATH . 'src/controllers/AuthController.php';
 require_once BASE_PATH . 'src/controllers/WebsiteController.php';
 require_once BASE_PATH . 'src/controllers/SocialController.php';
 require_once BASE_PATH . 'src/controllers/StripeController.php';
+require_once BASE_PATH . 'src/services/CloudinaryService.php';
 
 // Initialize router as global
 global $router;
