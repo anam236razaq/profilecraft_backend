@@ -7,7 +7,7 @@
 
 var_dump(getenv("DB_HOST"));
 var_dump(getenv("DB_PORT"));
-var_dump(getenv("DB_USER"));
+var_dump(getenv("DB_USERNAME"));
 exit;
 
 // rest of your code below (router, etc)
