@@ -5,11 +5,6 @@
  * All API requests are routed through this file.
  */
 
-var_dump(getenv("DB_HOST"));
-var_dump(getenv("DB_PORT"));
-var_dump(getenv("DB_USERNAME"));
-exit;
-
 // rest of your code below (router, etc)
 
 // CORS Headers - Allow any origin for development
