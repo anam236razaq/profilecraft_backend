@@ -5,6 +5,13 @@
  * All API requests are routed through this file.
  */
 
+var_dump(getenv("DB_HOST"));
+var_dump(getenv("DB_PORT"));
+var_dump(getenv("DB_USER"));
+exit;
+
+// rest of your code below (router, etc)
+
 // CORS Headers - Allow any origin for development
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '*';
 header("Access-Control-Allow-Origin: $origin");
