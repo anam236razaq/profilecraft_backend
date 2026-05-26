@@ -84,13 +84,24 @@ class Auth {
         $payload = self::verifyToken($token);
         if (!$payload) return null;
 
-        // Fetch user from database
+        // Check if user exists (regardless of active status)
         $user = Database::query(
-            "SELECT id, email, full_name, avatar_url, bio, is_admin, plan FROM users WHERE id = ? AND is_active = TRUE",
+            "SELECT id, email, full_name, avatar_url, bio, is_admin, plan, is_active FROM users WHERE id = ?",
             [$payload['sub']]
         );
 
-        return $user[0] ?? null;
+        if (!$user) return null;
+
+        // Check if account is deactivated
+        if (!$user[0]['is_active']) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'ACCOUNT_DEACTIVATED', 'message' => 'Your account has been deactivated.']);
+            exit;
+        }
+
+        // Remove is_active from returned user data
+        unset($user[0]['is_active']);
+        return $user[0];
     }
 
     /**
