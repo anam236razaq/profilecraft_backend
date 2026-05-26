@@ -34,9 +34,13 @@ class Database {
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false,
-            PDO::MYSQL_ATTR_SSL_CA => $_ENV['DB_SSL_CA'] ?? null,
-            PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
         ];
+
+        // Only add SSL options if DB_SSL_CA is set (for cloud databases like TiDB)
+        if (!empty($_ENV['DB_SSL_CA'])) {
+            $options[PDO::MYSQL_ATTR_SSL_CA] = $_ENV['DB_SSL_CA'];
+            $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+        }
 
         try {
             return new PDO($dsn, $username, $password, $options);
