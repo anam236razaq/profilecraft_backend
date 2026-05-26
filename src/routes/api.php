@@ -169,9 +169,7 @@ $router->get('/admin/templates', function($data) {
             FROM templates t
             WHERE $whereClause
             ORDER BY t.created_at DESC
-            LIMIT ? OFFSET ?";
-    $params[] = $perPage;
-    $params[] = $offset;
+            LIMIT $perPage OFFSET $offset";
 
     $templates = Database::query($sql, $params);
 

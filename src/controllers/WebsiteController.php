@@ -226,9 +226,7 @@ class WebsiteController {
         $sql = "SELECT id, name, slug, description, thumbnail_url, category, is_premium, created_at
                 FROM templates WHERE $whereClause
                 ORDER BY category, name
-                LIMIT ? OFFSET ?";
-        $params[] = $perPage;
-        $params[] = $offset;
+                LIMIT $perPage OFFSET $offset";
 
         $templates = Database::query($sql, $params);
 

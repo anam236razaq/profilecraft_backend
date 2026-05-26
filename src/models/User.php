@@ -108,9 +108,7 @@ class User extends Model {
                 FROM {$this->table}
                 WHERE $where
                 ORDER BY created_at DESC
-                LIMIT ? OFFSET ?";
-        $params[] = $perPage;
-        $params[] = $offset;
+                LIMIT $perPage OFFSET $offset";
 
         $users = Database::query($sql, $params);
 
