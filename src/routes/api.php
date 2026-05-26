@@ -123,7 +123,7 @@ $router->put('/admin/users/{id}/toggle', function($data) {
         Response::error('User ID is required', 400);
     }
 
-    $isActive = isset($data['is_active']) ? (bool)$data['is_active'] : true;
+    $isActive = isset($data['is_active']) ? (int)(bool)$data['is_active'] : 1;
     $userModel->update((int)$id, ['is_active' => $isActive]);
 
     $message = $isActive ? 'User activated successfully' : 'User deactivated successfully';
