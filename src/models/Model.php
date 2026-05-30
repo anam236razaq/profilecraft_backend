@@ -71,8 +71,16 @@ class Model {
         $columns = implode(', ', array_keys($data));
         $placeholders = implode(', ', array_fill(0, count($data), '?'));
 
+        // Convert booleans to integers for MySQL compatibility
+        $values = array_map(function($value) {
+            if (is_bool($value)) {
+                return $value ? 1 : 0;
+            }
+            return $value;
+        }, array_values($data));
+
         $sql = "INSERT INTO {$this->table} ($columns) VALUES ($placeholders)";
-        Database::execute($sql, array_values($data));
+        Database::execute($sql, $values);
 
         return (int) Database::lastInsertId();
     }
