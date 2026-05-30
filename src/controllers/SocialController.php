@@ -149,6 +149,19 @@ class SocialController {
                 $returnError('Failed to obtain access token');
             }
 
+            // CRITICAL: Check if this provider_user_id is already connected to another user
+            $providerUserId = $tokenData['provider_user_id'] ?? null;
+            if ($providerUserId) {
+                $existingOwner = Database::query(
+                    "SELECT user_id FROM social_accounts WHERE provider = ? AND provider_user_id = ?",
+                    [$provider, $providerUserId]
+                );
+
+                if ($existingOwner && (int)$existingOwner[0]['user_id'] !== (int)$userId) {
+                    $returnError('This ' . ucfirst($provider) . ' account is already connected to another profile. Please disconnect it from that profile first.');
+                }
+            }
+
             // Store the social account
             $accountData = [
                 'user_id' => $userId,
