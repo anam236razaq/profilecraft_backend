@@ -149,22 +149,48 @@ class SocialController {
                 $returnError('Failed to obtain access token');
             }
 
-            // CRITICAL: Check if this provider_user_id is already connected to another user
+            // CRITICAL: Check if this account is already connected to another user
+            // Fallback chain: provider_user_id → provider_username → user_id (from provider)
             $providerUserId = $tokenData['provider_user_id'] ?? null;
-            if (!$providerUserId && $provider === 'github') {
-                // GitHub doesn't return provider_user_id in token — fetch profile to get GitHub user ID
+            $providerUsername = null;
+
+            if ($provider === 'github') {
                 $ghProfile = $this->socialService->getProfile('github', $tokenData['access_token']);
                 $providerUserId = $ghProfile['metadata']['id'] ?? null;
+                $providerUsername = $ghProfile['username'] ?? null;
+            } elseif ($provider === 'linkedin') {
+                // linkedin stores sub in provider_user_id, username in provider_username
+                // linkedinCheck already has providerUserId from id_token
+                $liProfile = $this->socialService->getProfile('linkedin', $tokenData['access_token']);
+                $providerUsername = $liProfile['username'] ?? null;
+            } elseif ($provider === 'google') {
+                $googleProfile = $this->socialService->getProfile('google', $tokenData['access_token']);
+                $providerUsername = $googleProfile['username'] ?? null;
             }
+
+            $duplicateOwner = null;
             if ($providerUserId) {
-                $existingOwner = Database::query(
+                $duplicateOwner = Database::query(
                     "SELECT user_id FROM social_accounts WHERE provider = ? AND provider_user_id = ?",
                     [$provider, $providerUserId]
                 );
+            }
+            if (!$duplicateOwner && $providerUsername) {
+                $duplicateOwner = Database::query(
+                    "SELECT user_id FROM social_accounts WHERE provider = ? AND provider_username = ?",
+                    [$provider, $providerUsername]
+                );
+            }
+            if (!$duplicateOwner && $providerUserId) {
+                // Last resort: check by provider_user_id even if empty string (old records)
+                $duplicateOwner = Database::query(
+                    "SELECT user_id FROM social_accounts WHERE provider = ? AND provider_user_id = ? AND provider_user_id != ''",
+                    [$provider, $providerUserId]
+                );
+            }
 
-                if ($existingOwner && (int)$existingOwner[0]['user_id'] !== (int)$userId) {
-                    $returnError('This ' . ucfirst($provider) . ' account is already connected to another profile. Please disconnect it from that profile first.');
-                }
+            if ($duplicateOwner && (int)$duplicateOwner[0]['user_id'] !== (int)$userId) {
+                $returnError('This ' . ucfirst($provider) . ' account is already connected to another profile. Please disconnect it from that profile first.');
             }
 
             // Store the social account
