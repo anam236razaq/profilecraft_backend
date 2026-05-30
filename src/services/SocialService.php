@@ -191,6 +191,7 @@ class SocialService {
             'following_count' => $user['following'],
             'post_count' => $user['public_repos'],
             'metadata' => [
+                'id' => (string) $user['id'],
                 'company' => $user['company'],
                 'twitter_username' => $user['twitter_username']
             ]

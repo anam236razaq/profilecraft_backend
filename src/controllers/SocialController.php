@@ -151,6 +151,11 @@ class SocialController {
 
             // CRITICAL: Check if this provider_user_id is already connected to another user
             $providerUserId = $tokenData['provider_user_id'] ?? null;
+            if (!$providerUserId && $provider === 'github') {
+                // GitHub doesn't return provider_user_id in token — fetch profile to get GitHub user ID
+                $ghProfile = $this->socialService->getProfile('github', $tokenData['access_token']);
+                $providerUserId = $ghProfile['metadata']['id'] ?? null;
+            }
             if ($providerUserId) {
                 $existingOwner = Database::query(
                     "SELECT user_id FROM social_accounts WHERE provider = ? AND provider_user_id = ?",
