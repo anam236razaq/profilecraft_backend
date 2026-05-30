@@ -149,6 +149,39 @@ class SocialController {
                 $returnError('Failed to obtain access token');
             }
 
+            // CRITICAL: Check if provider_user_id is already linked to another user
+            $providerUserId = $tokenData['provider_user_id'] ?? '';
+            if ($providerUserId) {
+                $linkedAccount = Database::query(
+                    "SELECT id, user_id FROM social_accounts WHERE provider = ? AND provider_user_id = ?",
+                    [$provider, $providerUserId]
+                );
+
+                if ($linkedAccount && $linkedAccount[0]['user_id'] != $userId) {
+                    Response::success([
+                        'success' => true,
+                        'data' => [
+                            [
+                                'id' => $linkedAccount[0]['id'],
+                                'provider' => $provider,
+                                'provider_user_id' => $providerUserId,
+                                'provider_username' => null,
+                                'provider_avatar_url' => null,
+                                'is_connected' => false,
+                                'last_fetched_at' => null,
+                                'created_at' => null,
+                                'display_name' => null,
+                                'bio' => null,
+                                'profile_url' => null,
+                                'follower_count' => null,
+                                'following_count' => null
+                            ]
+                        ],
+                        'message' => ucfirst($provider) . ' account is already linked with another user.'
+                    ]);
+                }
+            }
+
             // Store the social account
             $accountData = [
                 'user_id' => $userId,
