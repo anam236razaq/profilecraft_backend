@@ -161,6 +161,22 @@ class SocialController {
                 'is_connected' => true
             ];
 
+            // CRITICAL: Check if provider_user_id is already linked to another user
+            $providerUserId = $tokenData['provider_user_id'] ?? '';
+            if ($providerUserId) {
+                $linkedAccount = Database::query(
+                    "SELECT id, user_id FROM social_accounts WHERE provider = ? AND provider_user_id = ?",
+                    [$provider, $providerUserId]
+                );
+
+                if ($linkedAccount && $linkedAccount[0]['user_id'] != $userId) {
+                    Response::error([
+                        'success' => false,
+                        'message' => 'This ' . ucfirst($provider) . ' account is already linked with another user.'
+                    ], 400);
+                }
+            }
+
             // Check if account exists (connected or previously connected)
             $existing = Database::query(
                 "SELECT id, is_connected FROM social_accounts WHERE user_id = ? AND provider = ?",

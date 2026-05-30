@@ -159,11 +159,28 @@ class SocialService {
         $data = json_decode($response, true);
         if (isset($data['error'])) return null;
 
+        $accessToken = $data['access_token'];
+
+        // Fetch GitHub user ID to return as provider_user_id
+        $userId = null;
+        $userResponse = $this->httpGet('https://api.github.com/user', [
+            'Authorization: Bearer ' . $accessToken,
+            'Accept: application/vnd.github.v3+json',
+            'User-Agent: ProfileCraft'
+        ]);
+
+        if ($userResponse) {
+            $user = json_decode($userResponse, true);
+            if (isset($user['id'])) {
+                $userId = (string) $user['id'];
+            }
+        }
+
         return [
-            'access_token' => $data['access_token'],
+            'access_token' => $accessToken,
             'refresh_token' => $data['refresh_token'] ?? null,
             'expires_in' => 0,
-            'provider_user_id' => null
+            'provider_user_id' => $userId
         ];
     }
 
